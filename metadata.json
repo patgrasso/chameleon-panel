@@ -1,0 +1,8 @@
+{
+    "uuid": "chameleon-panel@cinnamon.org",
+    "name": "Chameleon Panel",
+    "description": "Sets different themes depending on whether or not a window is maximized",
+    "icon": "starred",
+    "theme-light": null,
+    "theme-dark": null
+}
