@@ -11,11 +11,15 @@ maintains its transparency, revealing the desktop while a window is maximized).
 ## Configuration / Installation
 In `~/.local/share/cinnamon/applets/`, do
 ```sh
-git clone https://github.com/patgrasso/chameleon-panel.git cinnamon-panel@cinnamon.org
+git clone https://github.com/patgrasso/chameleon-panel.git chameleon-panel@cinnamon.org
 ```
 In the `metadata.json` file, two attributes are listed as `null`.
 
 `theme-light` should contain the absolute path to the css file of the ordinary
 theme.
+
 `theme-dark` should contain the absolute path to the css file of the theme which
 should appear whenever a window is maximized on the primary screen.
+
+Once those are set, go to the cinnamon applet configuration panel and turn on
+"Chameleon Panel". Happy ricing!
