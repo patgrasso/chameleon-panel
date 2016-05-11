@@ -1,8 +1,12 @@
 /*global imports*/
 
-const Applet  = imports.ui.applet;
-const Main    = imports.ui.main;
-const Lang    = imports.lang;
+const Applet      = imports.ui.applet;
+const Main        = imports.ui.main;
+const Lang        = imports.lang;
+const St          = imports.gi.St;
+
+const THEME_LIGHT = 'theme-light';
+const THEME_DARK  = 'theme-dark';
 
 function MyApplet(orientation, panel_height, instance_id) {
   this._init(orientation, panel_height, instance_id);
@@ -13,12 +17,22 @@ MyApplet.prototype = {
   __proto__: Applet.Applet.prototype,
 
   _init: function (metadata, orientation, panel_height, instance_id) {
-    Applet.Applet.prototype._init.call(this, orientation, panel_height, instance_id);
+    Applet.Applet.prototype._init.call(
+      this,
+      orientation,
+      panel_height,
+      instance_id
+    );
 
     this.metadata = metadata;
 
-    this.windows = [];
-    this.handles = [];
+    this.windows  = [];
+    this.handles  = [];
+
+    // Instantiate themes to avoid re-loading a theme upon window maximize
+    this.themes   = {};
+    this.loadTheme(THEME_LIGHT);
+    this.loadTheme(THEME_DARK);
 
     this.handles.push(global.window_manager.connect(
         'maximize',
@@ -51,8 +65,7 @@ MyApplet.prototype = {
 
   onMaximize: function (cinnamonwm, actor) {
     if (actor.metaWindow.is_on_primary_monitor()) {
-      global.log('set theme to dark');
-      this.setTheme(true);
+      this.setTheme(THEME_DARK);
     }
   },
 
@@ -70,31 +83,49 @@ MyApplet.prototype = {
         !wind.minimized
       ) {
         maxWindowExists = true;
-        global.log(wind.get_title());
       }
     }
     if (!maxWindowExists) {
-      this.setTheme(false);
+      this.setTheme(THEME_LIGHT);
     } else {
-      this.setTheme(true);
+      this.setTheme(THEME_DARK);
     }
+  },
+
+  loadTheme: function (which) {
+    let theme = this.themes[which] || new St.Theme({
+      fallback_stylesheet: global.datadir + '/theme/cinnamon.css'
+    });
+
+    if (this.metadata[which] == null) {
+      global.logError(which + ' must be defined in the metadata.json file');
+      return;
+    }
+
+    theme.unload_stylesheet(this.metadata[which]);
+    theme.load_stylesheet(this.metadata[which]);
+
+    this.themes[which] = theme;
   },
 
   toggleTheme: function () {
-    if (Main.getThemeStylesheet() === this.metadata['theme-light']) {
-      this.setTheme(true);
+    let themeContext = St.ThemeContext.get_for_stage(global.stage);
+
+    if (themeContext.get_theme() === this.themes[THEME_LIGHT]) {
+      this.setTheme(THEME_DARK);
     } else {
-      this.setTheme(false);
+      this.setTheme(THEME_LIGHT);
     }
   },
 
-  setTheme: function (dark) {
-    if (dark) {
-      Main.setThemeStylesheet(this.metadata['theme-dark']);
-    } else {
-      Main.setThemeStylesheet(this.metadata['theme-light']);
+  setTheme: function (which) {
+    let themeContext = St.ThemeContext.get_for_stage(global.stage);
+
+    if (this.themes[which] == null) {
+      this.loadTheme(which);
     }
-    Main.loadTheme();
+
+    themeContext.set_theme(this.themes[which]);
   },
 
   refresh: function () {
@@ -106,7 +137,10 @@ MyApplet.prototype = {
     });
 
     windows.forEach(function (window) {
-      that.windows.push(new Window(window.metaWindow, Lang.bind(that, that.update)));
+      that.windows.push(new Window(
+        window.metaWindow,
+        Lang.bind(that, that.update)
+      ));
     });
     this.update();
   }
